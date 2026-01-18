@@ -31,13 +31,22 @@ async function runPlaywrightBenchmark(targetName, targetUrl) {
       unit: 'ms'
     });
 
-    // Test 2: DOM Content Loaded
+    // Test 2: DOM Content Loaded (using Navigation Timing API)
     const domMetrics = await page.evaluate(() => {
-      const timing = performance.timing;
+      const entries = performance.getEntriesByType('navigation');
+      if (entries.length > 0) {
+        const nav = entries[0];
+        return {
+          domContentLoaded: nav.domContentLoadedEventEnd - nav.fetchStart,
+          domInteractive: nav.domInteractive - nav.fetchStart,
+          loadComplete: nav.loadEventEnd - nav.fetchStart
+        };
+      }
+      // Fallback if Navigation Timing Level 2 is not available
       return {
-        domContentLoaded: timing.domContentLoadedEventEnd - timing.navigationStart,
-        domInteractive: timing.domInteractive - timing.navigationStart,
-        loadComplete: timing.loadEventEnd - timing.navigationStart
+        domContentLoaded: 0,
+        domInteractive: 0,
+        loadComplete: 0
       };
     });
 

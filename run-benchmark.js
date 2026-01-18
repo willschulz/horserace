@@ -10,8 +10,19 @@ if (!fs.existsSync(resultsDir)) {
 }
 
 // Load target configurations
-const targetsConfig = JSON.parse(fs.readFileSync('targets.json', 'utf8'));
-const targets = targetsConfig.targets;
+let targets;
+try {
+  const targetsConfig = JSON.parse(fs.readFileSync('targets.json', 'utf8'));
+  targets = targetsConfig.targets;
+  
+  if (!targets || typeof targets !== 'object') {
+    throw new Error('Invalid targets.json format: missing "targets" object');
+  }
+} catch (error) {
+  console.error('❌ Failed to load targets.json:', error.message);
+  console.error('   Please ensure targets.json exists and is valid JSON.');
+  process.exit(1);
+}
 
 // Parse command line arguments
 const args = process.argv.slice(2);
