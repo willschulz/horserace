@@ -1,0 +1,97 @@
+{
+  "timestamp": "2026-01-18T22:00:00.000Z",
+  "targets": [
+    {
+      "target": "kylix",
+      "url": "http://kylix.local",
+      "playwright": {
+        "target": "kylix",
+        "url": "http://kylix.local",
+        "timestamp": "2026-01-18T22:00:01.000Z",
+        "tests": [
+          {
+            "name": "page_load",
+            "success": true,
+            "statusCode": 200,
+            "duration": 245,
+            "unit": "ms"
+          },
+          {
+            "name": "dom_metrics",
+            "success": true,
+            "domContentLoaded": 180,
+            "domInteractive": 150,
+            "loadComplete": 245,
+            "unit": "ms"
+          },
+          {
+            "name": "network_timing",
+            "success": true,
+            "dns": 2,
+            "tcp": 5,
+            "ttfb": 45,
+            "download": 120,
+            "unit": "ms"
+          }
+        ],
+        "screenshotPath": "results/kylix-screenshot.png"
+      },
+      "k6": {
+        "target": "kylix",
+        "url": "http://kylix.local",
+        "timestamp": "2026-01-18T22:01:00.000Z",
+        "metricsFile": "results/kylix-k6-results.json",
+        "summary": {
+          "totalRequests": 450,
+          "type": "k6"
+        }
+      }
+    },
+    {
+      "target": "pyxis",
+      "url": "http://pyxis.local",
+      "playwright": {
+        "target": "pyxis",
+        "url": "http://pyxis.local",
+        "timestamp": "2026-01-18T22:02:00.000Z",
+        "tests": [
+          {
+            "name": "page_load",
+            "success": true,
+            "statusCode": 200,
+            "duration": 312,
+            "unit": "ms"
+          },
+          {
+            "name": "dom_metrics",
+            "success": true,
+            "domContentLoaded": 220,
+            "domInteractive": 185,
+            "loadComplete": 312,
+            "unit": "ms"
+          },
+          {
+            "name": "network_timing",
+            "success": true,
+            "dns": 3,
+            "tcp": 7,
+            "ttfb": 65,
+            "download": 145,
+            "unit": "ms"
+          }
+        ],
+        "screenshotPath": "results/pyxis-screenshot.png"
+      },
+      "k6": {
+        "target": "pyxis",
+        "url": "http://pyxis.local",
+        "timestamp": "2026-01-18T22:03:00.000Z",
+        "metricsFile": "results/pyxis-k6-results.json",
+        "summary": {
+          "totalRequests": 430,
+          "type": "k6"
+        }
+      }
+    }
+  ]
+}
