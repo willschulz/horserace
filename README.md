@@ -52,29 +52,21 @@ npm install
 
 ## Configuration
 
-Edit `targets.json` to configure your test targets:
+Edit `targets.json` to configure your test targets. You can add multiple targets to test different servers or configurations:
 
 ```json
 {
   "targets": {
-    "kylix": {
-      "name": "kylix",
-      "url": "http://kylix.local",
-      "description": "Kylix target server"
-    },
-    "pyxis": {
-      "name": "pyxis",
-      "url": "http://pyxis.local",
-      "description": "Pyxis target server"
-    },
-    "skyphos": {
-      "name": "skyphos",
-      "url": "http://skyphos.local",
-      "description": "Skyphos target server"
+    "willschulz": {
+      "name": "willschulz",
+      "url": "https://willschulz.com",
+      "description": "Main website - willschulz.com"
     }
   }
 }
 ```
+
+To test different nodes of your homelab, you can add multiple targets with different URLs or modify the URL between runs.
 
 ## Usage
 
@@ -95,18 +87,43 @@ node run-benchmark.js kylix
 
 ## Output
 
-The harness generates several output files in the `results/` directory:
+The harness generates organized output files with support for multiple test runs:
 
-### JSON Artifacts (Machine-Readable)
-- `all-results.json` - Combined results from all targets
+### Results Organization
+- Each test run is stored in `results/runs/{runId}/` with a unique timestamp-based ID
+- `results/latest-results.json` - Always points to the most recent run
+- `results/SUMMARY.md` - Summary of the latest run
+- `results/runs-index.json` - Index of all test runs (last 50 runs)
+
+### Per-Run Files (in `results/runs/{runId}/`)
+- `all-results.json` - Combined results from all targets for this run
 - `{target}-combined-results.json` - Individual target results
 - `{target}-k6-results.json` - Raw k6 metrics (if k6 is installed)
-
-### Human-Readable Summary
-- `SUMMARY.md` - Markdown summary of all benchmark results
-
-### Screenshots
 - `{target}-screenshot.png` - Screenshot of each target homepage
+- `SUMMARY.md` - Markdown summary for this specific run
+
+### Comparing Multiple Runs
+
+Use the comparison tool to compare performance across different test runs:
+
+```bash
+# List available runs
+npm run compare
+
+# Compare specific runs
+npm run compare <runId1> <runId2> [runId3...]
+```
+
+Or directly:
+```bash
+node compare-runs.js <runId1> <runId2>
+```
+
+The comparison generates `results/COMPARISON.md` with side-by-side metrics showing:
+- Performance differences between runs
+- Best/worst performing metrics (highlighted)
+- All Playwright metrics (page load, DOM timing, network timing)
+- k6 test status for each run
 
 ## Test Types
 
@@ -164,13 +181,14 @@ Benchmark Run: 2026-01-18T22:30:00.000Z
 
 ## Architecture
 
-The harness consists of three main components:
+The harness consists of four main components:
 
-1. **run-benchmark.js**: Main orchestrator that runs tests for all configured targets
+1. **run-benchmark.js**: Main orchestrator that runs tests for all configured targets and manages run history
 2. **playwright-benchmark.js**: Browser-based testing module using Playwright
 3. **k6-load-test.js**: Load testing script using k6
+4. **compare-runs.js**: Comparison tool for analyzing differences between multiple test runs
 
-Results are collected, combined, and formatted into both JSON (for automation) and Markdown (for human review).
+Results are collected, combined, and formatted into both JSON (for automation) and Markdown (for human review). Each run is timestamped and stored separately, enabling easy comparison of performance over time or across different server configurations.
 
 ## License
 

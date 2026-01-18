@@ -1,19 +1,9 @@
 {
   "targets": {
-    "kylix": {
-      "name": "kylix",
-      "url": "http://kylix.local",
-      "description": "Kylix target server"
-    },
-    "pyxis": {
-      "name": "pyxis",
-      "url": "http://pyxis.local",
-      "description": "Pyxis target server"
-    },
-    "skyphos": {
-      "name": "skyphos",
-      "url": "http://skyphos.local",
-      "description": "Skyphos target server"
+    "willschulz": {
+      "name": "willschulz",
+      "url": "https://willschulz.com",
+      "description": "Main website - willschulz.com"
     }
   }
 }

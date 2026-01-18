@@ -6,7 +6,13 @@ const { runPlaywrightBenchmark } = require('./playwright-benchmark.js');
 // Create results directory if it doesn't exist
 const resultsDir = path.join(__dirname, 'results');
 if (!fs.existsSync(resultsDir)) {
-  fs.mkdirSync(resultsDir);
+  fs.mkdirSync(resultsDir, { recursive: true });
+}
+
+// Create runs directory for storing individual run results
+const runsDir = path.join(resultsDir, 'runs');
+if (!fs.existsSync(runsDir)) {
+  fs.mkdirSync(runsDir, { recursive: true });
 }
 
 // Load target configurations
@@ -31,10 +37,10 @@ const selectedTargets = args.length > 0 ? args : Object.keys(targets);
 console.log('🏇 Horserace Benchmarking Harness');
 console.log('==================================\n');
 
-async function runK6Benchmark(targetName, targetUrl) {
+async function runK6Benchmark(targetName, targetUrl, runDir) {
   console.log(`\n📊 Running k6 load test for ${targetName}...`);
   
-  const outputFile = path.join(resultsDir, `${targetName}-k6-results.json`);
+  const outputFile = path.join(runDir, `${targetName}-k6-results.json`);
   
   try {
     // Check if k6 is installed
@@ -56,9 +62,26 @@ async function runK6Benchmark(targetName, targetUrl) {
     console.log(`✅ k6 test completed for ${targetName}`);
     
     // Parse k6 results
-    const rawResults = fs.readFileSync(outputFile, 'utf8');
-    const lines = rawResults.trim().split('\n');
-    const metrics = lines.map(line => JSON.parse(line)).filter(m => m.type === 'Point');
+    let metrics = [];
+    try {
+      if (fs.existsSync(outputFile)) {
+        const rawResults = fs.readFileSync(outputFile, 'utf8');
+        if (rawResults.trim()) {
+          const lines = rawResults.trim().split('\n').filter(line => line.trim());
+          metrics = lines
+            .map(line => {
+              try {
+                return JSON.parse(line);
+              } catch (e) {
+                return null;
+              }
+            })
+            .filter(m => m && m.type === 'Point');
+        }
+      }
+    } catch (parseError) {
+      console.log(`⚠️  Warning: Could not parse k6 results: ${parseError.message}`);
+    }
     
     return {
       target: targetName,
@@ -82,8 +105,15 @@ async function runK6Benchmark(targetName, targetUrl) {
 }
 
 async function runAllBenchmarks() {
+  const runTimestamp = new Date().toISOString();
+  const runId = runTimestamp.replace(/[:.]/g, '-').split('T')[0] + '_' + 
+                runTimestamp.split('T')[1].split('.')[0].replace(/:/g, '-');
+  const runDir = path.join(runsDir, runId);
+  fs.mkdirSync(runDir, { recursive: true });
+
   const allResults = {
-    timestamp: new Date().toISOString(),
+    runId: runId,
+    timestamp: runTimestamp,
     targets: []
   };
 
@@ -99,11 +129,11 @@ async function runAllBenchmarks() {
 
     // Run Playwright benchmark
     console.log(`\n🎭 Running Playwright tests for ${targetName}...`);
-    const playwrightResults = await runPlaywrightBenchmark(targetName, target.url);
+    const playwrightResults = await runPlaywrightBenchmark(targetName, target.url, runDir);
     console.log(`✅ Playwright tests completed for ${targetName}`);
 
     // Run k6 benchmark
-    const k6Results = await runK6Benchmark(targetName, target.url);
+    const k6Results = await runK6Benchmark(targetName, target.url, runDir);
 
     // Combine results
     const targetResults = {
@@ -115,31 +145,70 @@ async function runAllBenchmarks() {
 
     allResults.targets.push(targetResults);
 
-    // Save individual target results
-    const targetResultFile = path.join(resultsDir, `${targetName}-combined-results.json`);
+    // Save individual target results in run directory
+    const targetResultFile = path.join(runDir, `${targetName}-combined-results.json`);
     fs.writeFileSync(targetResultFile, JSON.stringify(targetResults, null, 2));
     console.log(`💾 Results saved to ${targetResultFile}`);
   }
 
-  // Save combined results
-  const combinedResultFile = path.join(resultsDir, 'all-results.json');
-  fs.writeFileSync(combinedResultFile, JSON.stringify(allResults, null, 2));
-  console.log(`\n💾 Combined results saved to ${combinedResultFile}`);
+  // Save combined results in run directory
+  const runResultFile = path.join(runDir, 'all-results.json');
+  fs.writeFileSync(runResultFile, JSON.stringify(allResults, null, 2));
+  console.log(`\n💾 Run results saved to ${runResultFile}`);
+
+  // Also save as latest for easy access
+  const latestResultFile = path.join(resultsDir, 'latest-results.json');
+  fs.writeFileSync(latestResultFile, JSON.stringify(allResults, null, 2));
+  console.log(`💾 Latest results saved to ${latestResultFile}`);
+
+  // Update runs index
+  updateRunsIndex(runId, runTimestamp, allResults);
 
   // Generate human-readable summary
-  generateSummary(allResults);
+  generateSummary(allResults, runDir);
 
   return allResults;
 }
 
-function generateSummary(results) {
+function updateRunsIndex(runId, timestamp, results) {
+  const indexFile = path.join(resultsDir, 'runs-index.json');
+  let runsIndex = [];
+  
+  if (fs.existsSync(indexFile)) {
+    try {
+      runsIndex = JSON.parse(fs.readFileSync(indexFile, 'utf8'));
+    } catch (e) {
+      runsIndex = [];
+    }
+  }
+  
+  runsIndex.push({
+    runId: runId,
+    timestamp: timestamp,
+    targets: results.targets.map(t => t.target)
+  });
+  
+  // Sort by timestamp, newest first
+  runsIndex.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  
+  // Keep only last 50 runs
+  if (runsIndex.length > 50) {
+    runsIndex = runsIndex.slice(0, 50);
+  }
+  
+  fs.writeFileSync(indexFile, JSON.stringify(runsIndex, null, 2));
+}
+
+function generateSummary(results, runDir) {
   console.log('\n\n📋 BENCHMARK SUMMARY');
   console.log('═'.repeat(80));
-  console.log(`Benchmark Run: ${results.timestamp}\n`);
+  console.log(`Benchmark Run: ${results.timestamp}`);
+  console.log(`Run ID: ${results.runId}\n`);
 
   const summaryLines = [];
   summaryLines.push('# Horserace Benchmark Summary');
   summaryLines.push('');
+  summaryLines.push(`**Run ID:** ${results.runId}`);
   summaryLines.push(`**Run Date:** ${new Date(results.timestamp).toLocaleString()}`);
   summaryLines.push('');
   summaryLines.push('## Results by Target');
@@ -217,10 +286,15 @@ function generateSummary(results) {
     console.log('');
   }
 
-  // Save summary to file
-  const summaryFile = path.join(resultsDir, 'SUMMARY.md');
+  // Save summary to run directory
+  const summaryFile = path.join(runDir, 'SUMMARY.md');
   fs.writeFileSync(summaryFile, summaryLines.join('\n'));
-  console.log(`\n📄 Human-readable summary saved to ${summaryFile}`);
+  console.log(`\n📄 Summary saved to ${summaryFile}`);
+  
+  // Also save as latest summary
+  const latestSummaryFile = path.join(resultsDir, 'SUMMARY.md');
+  fs.writeFileSync(latestSummaryFile, summaryLines.join('\n'));
+  console.log(`📄 Latest summary saved to ${latestSummaryFile}`);
   
   console.log('\n' + '═'.repeat(80));
   console.log('✨ Benchmark complete!\n');

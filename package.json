@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "benchmark": "node run-benchmark.js",
+    "compare": "node compare-runs.js",
     "test": "echo \"No tests specified\" && exit 0"
   },
   "keywords": ["benchmark", "k6", "playwright", "performance"],

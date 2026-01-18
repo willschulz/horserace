@@ -2,7 +2,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-async function runPlaywrightBenchmark(targetName, targetUrl) {
+async function runPlaywrightBenchmark(targetName, targetUrl, runDir) {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -87,7 +87,7 @@ async function runPlaywrightBenchmark(targetName, targetUrl) {
     }
 
     // Test 4: Screenshot (for visual verification)
-    const screenshotPath = path.join('results', `${targetName}-screenshot.png`);
+    const screenshotPath = path.join(runDir, `${targetName}-screenshot.png`);
     await page.screenshot({ path: screenshotPath, fullPage: false });
     metrics.screenshotPath = screenshotPath;
 
